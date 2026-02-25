@@ -3,10 +3,12 @@ import { SessionsProvider, useSessions } from './contexts/SessionsContext';
 import { TimerTab } from './components/TimerTab';
 import { SessionsTab } from './components/SessionsTab';
 import { ReportsTab } from './components/ReportsTab';
+import { Settings } from './components/Settings';
 import { isFileSystemAccessSupported } from './services/csvService';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('timer');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { openFile, fileName, hasFile } = useSessions();
 
   const handleOpenFile = async () => {
@@ -41,7 +43,19 @@ function AppContent() {
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Time Tracker</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">Time Tracker</h1>
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Settings"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
 
             {!isFileSystemAccessSupported() ? (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
@@ -114,6 +128,9 @@ function AppContent() {
       <footer className="mt-12 py-6 text-center text-sm text-gray-500">
         <p>Time Tracker - All data stored in your CSV file</p>
       </footer>
+
+      {/* Settings Modal */}
+      <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

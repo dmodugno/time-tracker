@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSessions } from '../contexts/SessionsContext';
 import { formatTime12Hour } from '../utils/timeFormat';
+import { DayOffForm } from './DayOffForm';
 
 export function SessionsTab() {
   const { sessions, updateSession, deleteSession, addSession, mergeFromFile, hasFile } = useSessions();
@@ -13,6 +14,7 @@ export function SessionsTab() {
     end_time: '17:00'
   });
   const [mergeMessage, setMergeMessage] = useState(null);
+  const [showDayOffForm, setShowDayOffForm] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,6 +117,10 @@ export function SessionsTab() {
     }
   };
 
+  const handleAddDayOff = async (dayOffEntry) => {
+    await addSession(dayOffEntry);
+  };
+
   // Pagination
   const indexOfLastSession = currentPage * sessionsPerPage;
   const indexOfFirstSession = indexOfLastSession - sessionsPerPage;
@@ -140,7 +146,29 @@ export function SessionsTab() {
             Import from another file
           </button>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setShowDayOffForm(!showDayOffForm);
+              if (!showDayOffForm) {
+                setShowAddForm(false); // Close manual entry form
+              }
+            }}
+            disabled={!hasFile}
+            className={`
+              px-4 py-2 rounded-lg font-medium transition-colors
+              ${hasFile
+                ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
+            `}
+          >
+            {showDayOffForm ? 'Cancel' : '+ Log Day Off'}
+          </button>
+          <button
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              if (!showAddForm) {
+                setShowDayOffForm(false); // Close day off form
+              }
+            }}
             disabled={!hasFile}
             className={`
               px-4 py-2 rounded-lg font-medium transition-colors
@@ -170,6 +198,15 @@ export function SessionsTab() {
             {mergeMessage.text}
           </p>
         </div>
+      )}
+
+      {/* Day Off form */}
+      {showDayOffForm && (
+        <DayOffForm
+          sessions={sessions}
+          onAddDayOff={handleAddDayOff}
+          onCancel={() => setShowDayOffForm(false)}
+        />
       )}
 
       {/* Add form */}
@@ -297,8 +334,28 @@ export function SessionsTab() {
                           </button>
                         </td>
                       </>
+                    ) : session.type === 'day_off' ? (
+                      // Day Off view mode (no edit)
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {session.date}
+                        </td>
+                        <td colSpan="3" className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                            Day Off
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleDelete(session.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </>
                     ) : (
-                      // View mode
+                      // Regular work session view mode
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {session.date}

@@ -33,7 +33,7 @@ export async function openFile(createNew = false) {
 
       // Write CSV header to new file
       const writable = await fileHandle.createWritable();
-      await writable.write('id,date,start_time,end_time,duration_hours\n');
+      await writable.write('id,date,start_time,end_time,duration_hours,type\n');
       await writable.close();
     } else {
       // Open existing file
@@ -92,9 +92,10 @@ export async function readSessions() {
             .map(row => ({
               id: row.id,
               date: row.date,
-              start_time: row.start_time,
-              end_time: row.end_time,
-              duration_hours: parseFloat(row.duration_hours) || 0
+              start_time: row.start_time || '',
+              end_time: row.end_time || '',
+              duration_hours: parseFloat(row.duration_hours) || 0,
+              type: row.type || 'work' // Default to "work" if missing
             }));
           resolve(sessions);
         },
@@ -145,7 +146,7 @@ async function writeSessions(sessions) {
 
   try {
     const csv = Papa.unparse(sessions, {
-      columns: ['id', 'date', 'start_time', 'end_time', 'duration_hours']
+      columns: ['id', 'date', 'start_time', 'end_time', 'duration_hours', 'type']
     });
 
     const writable = await fileHandle.createWritable();
@@ -172,7 +173,8 @@ export async function appendSession(session) {
     date: session.date,
     start_time: session.start_time,
     end_time: session.end_time,
-    duration_hours: calculateDuration(session.start_time, session.end_time)
+    duration_hours: calculateDuration(session.start_time, session.end_time),
+    type: session.type || 'work' // Default to "work" if not specified
   };
 
   sessions.push(newSession);
@@ -274,9 +276,10 @@ export async function mergeFromFile() {
             .map(row => ({
               id: row.id,
               date: row.date,
-              start_time: row.start_time,
-              end_time: row.end_time,
-              duration_hours: parseFloat(row.duration_hours) || 0
+              start_time: row.start_time || '',
+              end_time: row.end_time || '',
+              duration_hours: parseFloat(row.duration_hours) || 0,
+              type: row.type || 'work' // Default to "work" if missing
             }));
           resolve(sessions);
         },
