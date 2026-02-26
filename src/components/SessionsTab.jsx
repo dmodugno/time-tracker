@@ -8,11 +8,64 @@ export function SessionsTab() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({
-    date: new Date().toISOString().split('T')[0],
-    start_time: '09:00',
-    end_time: '17:00'
+
+  // Helper to get local date string
+  const getLocalDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper to get current time rounded to nearest 15 minutes
+  const getCurrentTimeRounded = () => {
+    const now = new Date();
+    const minutes = Math.round(now.getMinutes() / 15) * 15;
+    const hours = minutes === 60 ? now.getHours() + 1 : now.getHours();
+    const finalMinutes = minutes === 60 ? 0 : minutes;
+    return `${String(hours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+  };
+
+  // Helper to get smart default times based on date
+  const getSmartDefaults = (date) => {
+    const today = getLocalDateString();
+    const isToday = date === today;
+
+    if (isToday) {
+      // For today: use current time
+      const currentTime = getCurrentTimeRounded();
+      return {
+        start_time: currentTime,
+        end_time: currentTime
+      };
+    } else {
+      // For past dates: use last work session's times
+      const workSessions = sessions.filter(s => s.type === 'work' && s.start_time && s.end_time);
+      if (workSessions.length > 0) {
+        const lastSession = workSessions[0]; // Already sorted by date/time descending
+        return {
+          start_time: lastSession.start_time,
+          end_time: lastSession.end_time
+        };
+      }
+      // Fallback if no sessions exist
+      return {
+        start_time: '09:00',
+        end_time: '17:00'
+      };
+    }
+  };
+
+  const [addForm, setAddForm] = useState(() => {
+    const today = getLocalDateString();
+    const defaults = getSmartDefaults(today);
+    return {
+      date: today,
+      ...defaults
+    };
   });
+
   const [mergeMessage, setMergeMessage] = useState(null);
   const [showDayOffForm, setShowDayOffForm] = useState(false);
 
@@ -74,10 +127,12 @@ export function SessionsTab() {
     try {
       await addSession(addForm);
       setShowAddForm(false);
+      // Reset form with smart defaults for today
+      const today = getLocalDateString();
+      const defaults = getSmartDefaults(today);
       setAddForm({
-        date: new Date().toISOString().split('T')[0],
-        start_time: '09:00',
-        end_time: '17:00'
+        date: today,
+        ...defaults
       });
     } catch (error) {
       alert(`Failed to add session: ${error.message}`);
@@ -119,6 +174,15 @@ export function SessionsTab() {
 
   const handleAddDayOff = async (dayOffEntry) => {
     await addSession(dayOffEntry);
+  };
+
+  // Handle date change in add form - update times based on selected date
+  const handleDateChange = (newDate) => {
+    const defaults = getSmartDefaults(newDate);
+    setAddForm({
+      date: newDate,
+      ...defaults
+    });
   };
 
   // Pagination
@@ -219,7 +283,7 @@ export function SessionsTab() {
               <input
                 type="date"
                 value={addForm.date}
-                onChange={(e) => setAddForm({ ...addForm, date: e.target.value })}
+                onChange={(e) => handleDateChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
               />
