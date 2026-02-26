@@ -23,16 +23,16 @@ export function Settings({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className="absolute inset-0"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
         onClick={handleCancel}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative z-10">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
@@ -83,7 +83,6 @@ export function Settings({ isOpen, onClose }) {
             </button>
           </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }

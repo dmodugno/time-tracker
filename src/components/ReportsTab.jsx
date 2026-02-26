@@ -9,6 +9,14 @@ import {
   formatDateRange
 } from '../utils/flexBalance';
 
+// Helper to get local date in YYYY-MM-DD format (no timezone conversion)
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function ReportsTab() {
   const { sessions, hasFile } = useSessions();
   const { dailyTarget } = useSettings();
@@ -17,20 +25,20 @@ export function ReportsTab() {
   // Calculate date ranges
   const ranges = useMemo(() => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = getLocalDateString(now);
 
     // Start of this week (Monday)
     const startOfWeek = new Date(now);
     const day = startOfWeek.getDay();
     const diff = day === 0 ? -6 : 1 - day; // Adjust if Sunday (0) or find Monday
     startOfWeek.setDate(startOfWeek.getDate() + diff);
-    const weekStart = startOfWeek.toISOString().split('T')[0];
+    const weekStart = getLocalDateString(startOfWeek);
 
     // Start of this month
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthStart = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
 
     // Start of this year
-    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+    const yearStart = getLocalDateString(new Date(now.getFullYear(), 0, 1));
 
     return {
       today: { start: today, end: today },

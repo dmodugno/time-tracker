@@ -1,4 +1,16 @@
 /**
+ * Convert Date object to local YYYY-MM-DD string (no timezone conversion)
+ * @param {Date} date
+ * @returns {string}
+ */
+function getLocalDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Group sessions by date
  * @param {Array} sessions - Array of session objects
  * @returns {Object} - Date-keyed object of session arrays
@@ -158,8 +170,8 @@ export function getISOWeeksForMonth(year, month) {
 
     weeks.push({
       weekNumber: weekNum,
-      startDate: weekStart.toISOString().split('T')[0],
-      endDate: weekEnd.toISOString().split('T')[0],
+      startDate: getLocalDateString(weekStart),
+      endDate: getLocalDateString(weekEnd),
       belongsToMonth
     });
 
