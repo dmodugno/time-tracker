@@ -79,6 +79,17 @@ export function calculatePeriodBalance(sessions, startDate, endDate, dailyTarget
 }
 
 /**
+ * Format hours as hours and minutes (no sign)
+ * @param {number} decimalHours - Hours in decimal format
+ * @returns {string} - Formatted string like "9h 12m"
+ */
+export function formatHoursMinutes(decimalHours) {
+  const hours = Math.floor(decimalHours);
+  const minutes = Math.round((decimalHours - hours) * 60);
+  return `${hours}h ${minutes}m`;
+}
+
+/**
  * Format balance as hours and minutes with sign
  * @param {number} balanceHours - Balance in decimal hours
  * @returns {string} - Formatted string like "+2h 30m" or "−0h 45m"

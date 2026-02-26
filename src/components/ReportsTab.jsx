@@ -4,6 +4,7 @@ import { useSettings } from '../hooks/useSettings';
 import {
   calculatePeriodBalance,
   formatFlexBalance,
+  formatHoursMinutes,
   getFlexBalanceColor,
   getISOWeeksForMonth,
   formatDateRange
@@ -84,7 +85,7 @@ export function ReportsTab() {
       <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>
       <div className="space-y-3">
         <div>
-          <p className="text-4xl font-bold text-gray-900">{totalHours.toFixed(2)}</p>
+          <p className="text-4xl font-bold text-gray-900">{formatHoursMinutes(totalHours)}</p>
           <p className="text-sm text-gray-500">hours worked</p>
         </div>
         <div className="pt-3 border-t border-gray-200">
@@ -218,7 +219,7 @@ export function ReportsTab() {
                           {formatDateRange(week.startDate, week.endDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {week.totalHours.toFixed(2)} hrs
+                          {formatHoursMinutes(week.totalHours)}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${getFlexBalanceColor(week.balance)}`}>
                           {formatFlexBalance(week.balance)}
