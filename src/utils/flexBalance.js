@@ -11,6 +11,17 @@ function getLocalDateString(date) {
 }
 
 /**
+ * Check if a date string (YYYY-MM-DD) is a weekday (Mon-Fri)
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @returns {boolean} - True if weekday, false if weekend
+ */
+function isWeekday(dateString) {
+  const date = new Date(dateString + 'T00:00:00');
+  const day = date.getDay();
+  return day >= 1 && day <= 5; // Monday = 1, Friday = 5
+}
+
+/**
  * Group sessions by date
  * @param {Array} sessions - Array of session objects
  * @returns {Object} - Date-keyed object of session arrays
@@ -28,11 +39,14 @@ export function groupSessionsByDate(sessions) {
 
 /**
  * Calculate daily balance for a specific date
+ * @param {string} date - Date in YYYY-MM-DD format
  * @param {Array} sessionsForDate - Sessions for a single date
  * @param {number} dailyTarget - Daily target hours
  * @returns {number} - Balance in hours (can be negative)
  */
-export function calculateDailyBalance(sessionsForDate, dailyTarget) {
+export function calculateDailyBalance(date, sessionsForDate, dailyTarget) {
+  const isWeekdayDate = isWeekday(date);
+
   // Check if this date has a day_off entry
   const hasDayOff = sessionsForDate.some(s => s.type === 'day_off');
   if (hasDayOff) {
@@ -44,7 +58,13 @@ export function calculateDailyBalance(sessionsForDate, dailyTarget) {
     .filter(s => s.type === 'work')
     .reduce((sum, s) => sum + s.duration_hours, 0);
 
-  return totalHours - dailyTarget;
+  if (isWeekdayDate) {
+    // Weekdays: balance = hours - target
+    return totalHours - dailyTarget;
+  } else {
+    // Weekends: pure bonus (no target to meet)
+    return totalHours;
+  }
 }
 
 /**
@@ -62,17 +82,35 @@ export function calculatePeriodBalance(sessions, startDate, endDate, dailyTarget
   let totalHours = 0;
   let balance = 0;
 
-  Object.keys(grouped).forEach(date => {
-    const daysSessions = grouped[date];
-    const dayBalance = calculateDailyBalance(daysSessions, dailyTarget);
+  // Generate all dates in the period
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
+  const allDates = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    allDates.push(getLocalDateString(d));
+  }
 
-    // Add work hours to total (don't count day_off hours)
-    const dayWorkHours = daysSessions
-      .filter(s => s.type === 'work')
-      .reduce((sum, s) => sum + s.duration_hours, 0);
+  // Process each date in the period
+  allDates.forEach(date => {
+    const daysSessions = grouped[date] || [];
+    const isWeekdayDate = isWeekday(date);
 
-    totalHours += dayWorkHours;
-    balance += dayBalance;
+    if (daysSessions.length === 0 && isWeekdayDate) {
+      // Weekday with no entry: deficit of daily target
+      balance += -dailyTarget;
+    } else if (daysSessions.length > 0) {
+      // Has entries: calculate normally
+      const dayBalance = calculateDailyBalance(date, daysSessions, dailyTarget);
+
+      // Add work hours to total (don't count day_off hours)
+      const dayWorkHours = daysSessions
+        .filter(s => s.type === 'work')
+        .reduce((sum, s) => sum + s.duration_hours, 0);
+
+      totalHours += dayWorkHours;
+      balance += dayBalance;
+    }
+    // Weekend with no entry: ignored (no deficit, no surplus)
   });
 
   return { totalHours, balance };

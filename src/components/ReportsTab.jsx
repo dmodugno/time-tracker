@@ -20,13 +20,25 @@ const getLocalDateString = (date) => {
 
 export function ReportsTab() {
   const { sessions, hasFile } = useSessions();
-  const { dailyTarget } = useSettings();
+  const { dailyTarget, endOfWorkDay } = useSettings();
   const [currentMonthOffset, setCurrentMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
+
+  // Check if current time is after end of work day
+  const isAfterWorkDay = useMemo(() => {
+    const now = new Date();
+    const [hours, minutes] = endOfWorkDay.split(':').map(Number);
+    const endTime = new Date(now);
+    endTime.setHours(hours, minutes, 0, 0);
+    return now >= endTime;
+  }, [endOfWorkDay]);
 
   // Calculate date ranges
   const ranges = useMemo(() => {
     const now = new Date();
     const today = getLocalDateString(now);
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
 
     // Start of this week (Monday)
     const startOfWeek = new Date(now);
@@ -41,13 +53,16 @@ export function ReportsTab() {
     // Start of this year
     const yearStart = getLocalDateString(new Date(now.getFullYear(), 0, 1));
 
+    // For Week/Month/Year: exclude today if before end of work day
+    const periodEndDate = isAfterWorkDay ? today : yesterdayStr;
+
     return {
       today: { start: today, end: today },
-      week: { start: weekStart, end: today },
-      month: { start: monthStart, end: today },
-      year: { start: yearStart, end: today }
+      week: { start: weekStart, end: periodEndDate },
+      month: { start: monthStart, end: periodEndDate },
+      year: { start: yearStart, end: periodEndDate }
     };
-  }, []);
+  }, [isAfterWorkDay]);
 
   // Calculate totals and balances for each period
   const periodStats = useMemo(() => {
@@ -80,7 +95,7 @@ export function ReportsTab() {
     };
   }, [sessions, currentMonthOffset, dailyTarget]);
 
-  const StatCard = ({ title, totalHours, balance, period, color }) => (
+  const StatCard = ({ title, totalHours, balance, period, color, showInProgress }) => (
     <div className={`bg-white rounded-lg shadow-lg p-6 border-t-4 ${color}`}>
       <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>
       <div className="space-y-3">
@@ -89,10 +104,21 @@ export function ReportsTab() {
           <p className="text-sm text-gray-500">hours worked</p>
         </div>
         <div className="pt-3 border-t border-gray-200">
-          <p className={`text-2xl font-semibold ${getFlexBalanceColor(balance)}`}>
-            {formatFlexBalance(balance)}
-          </p>
-          <p className="text-sm text-gray-500">flex balance</p>
+          {showInProgress ? (
+            <>
+              <p className="text-2xl font-semibold text-gray-600 italic">
+                In progress...
+              </p>
+              <p className="text-sm text-gray-500">balance pending</p>
+            </>
+          ) : (
+            <>
+              <p className={`text-2xl font-semibold ${getFlexBalanceColor(balance)}`}>
+                {formatFlexBalance(balance)}
+              </p>
+              <p className="text-sm text-gray-500">flex balance</p>
+            </>
+          )}
         </div>
       </div>
       <p className="text-xs text-gray-400 mt-4">
@@ -128,6 +154,7 @@ export function ReportsTab() {
               balance={periodStats.today.balance}
               period={ranges.today.start}
               color="border-blue-500"
+              showInProgress={!isAfterWorkDay}
             />
             <StatCard
               title="This Week"

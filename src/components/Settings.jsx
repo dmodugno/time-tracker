@@ -2,21 +2,25 @@ import { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
 
 export function Settings({ isOpen, onClose }) {
-  const { dailyTarget, setDailyTargetHours } = useSettings();
-  const [tempValue, setTempValue] = useState(dailyTarget);
+  const { dailyTarget, endOfWorkDay, setDailyTargetHours, setEndOfWorkDayTime } = useSettings();
+  const [tempTarget, setTempTarget] = useState(dailyTarget);
+  const [tempEndTime, setTempEndTime] = useState(endOfWorkDay);
 
-  // Update temp value when dailyTarget changes
+  // Update temp values when settings change
   useEffect(() => {
-    setTempValue(dailyTarget);
-  }, [dailyTarget]);
+    setTempTarget(dailyTarget);
+    setTempEndTime(endOfWorkDay);
+  }, [dailyTarget, endOfWorkDay]);
 
   const handleSave = () => {
-    setDailyTargetHours(tempValue);
+    setDailyTargetHours(tempTarget);
+    setEndOfWorkDayTime(tempEndTime);
     onClose();
   };
 
   const handleCancel = () => {
-    setTempValue(dailyTarget); // Reset to current value
+    setTempTarget(dailyTarget); // Reset to current values
+    setTempEndTime(endOfWorkDay);
     onClose();
   };
 
@@ -57,12 +61,28 @@ export function Settings({ isOpen, onClose }) {
                 type="number"
                 min="0.5"
                 step="0.5"
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
+                value={tempTarget}
+                onChange={(e) => setTempTarget(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="mt-2 text-sm text-gray-500">
                 Set your daily target hours for flex balance calculations. Default is 9 hours.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="end-of-workday" className="block text-sm font-medium text-gray-700 mb-2">
+                End of Work Day
+              </label>
+              <input
+                id="end-of-workday"
+                type="time"
+                value={tempEndTime}
+                onChange={(e) => setTempEndTime(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                Time when the day is considered complete and flex balance is calculated. Default is 18:00 (6 PM).
               </p>
             </div>
           </div>
