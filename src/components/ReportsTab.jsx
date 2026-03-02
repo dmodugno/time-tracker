@@ -50,8 +50,18 @@ export function ReportsTab() {
     // Start of this month
     const monthStart = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
 
-    // Start of this year
-    const yearStart = getLocalDateString(new Date(now.getFullYear(), 0, 1));
+    // Start of this year - use first session date if available, otherwise Jan 1
+    let yearStart = getLocalDateString(new Date(now.getFullYear(), 0, 1));
+    if (sessions.length > 0) {
+      // Find the earliest session date
+      const earliestDate = sessions.reduce((earliest, session) => {
+        return session.date < earliest ? session.date : earliest;
+      }, sessions[0].date);
+
+      // Use earliest date as year start (but don't go before Jan 1 of current year)
+      const janFirst = getLocalDateString(new Date(now.getFullYear(), 0, 1));
+      yearStart = earliestDate > janFirst ? earliestDate : janFirst;
+    }
 
     // For Week/Month/Year: exclude today if before end of work day
     const periodEndDate = isAfterWorkDay ? today : yesterdayStr;
@@ -62,7 +72,7 @@ export function ReportsTab() {
       month: { start: monthStart, end: periodEndDate },
       year: { start: yearStart, end: periodEndDate }
     };
-  }, [isAfterWorkDay]);
+  }, [isAfterWorkDay, sessions]);
 
   // Calculate totals and balances for each period
   const periodStats = useMemo(() => {
