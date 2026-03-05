@@ -111,7 +111,7 @@ export async function readSessions() {
 }
 
 /**
- * Calculate duration in hours between start and end times
+ * Calculate duration in hours between start and end times (without midnight crossover handling)
  * @param {string} startTime - HH:MM or HH:MM:SS format
  * @param {string} endTime - HH:MM or HH:MM:SS format
  * @returns {number} - Duration in decimal hours
@@ -129,15 +129,71 @@ function calculateDuration(startTime, endTime) {
   const endS = endParts[2] || 0; // Default to 0 if no seconds
 
   const startSeconds = startH * 3600 + startM * 60 + startS;
-  let endSeconds = endH * 3600 + endM * 60 + endS;
-
-  // Handle midnight crossover: if end time is before start time, add 24 hours
-  if (endSeconds < startSeconds) {
-    endSeconds += 86400; // 24 hours in seconds
-  }
+  const endSeconds = endH * 3600 + endM * 60 + endS;
 
   const durationSeconds = endSeconds - startSeconds;
   return Math.round((durationSeconds / 3600) * 100) / 100; // Round to 2 decimal places
+}
+
+/**
+ * Get the next day's date in YYYY-MM-DD format
+ * @param {string} dateString - Date in YYYY-MM-DD format
+ * @returns {string} - Next day's date in YYYY-MM-DD format
+ */
+function getNextDay(dateString) {
+  const date = new Date(dateString + 'T00:00:00');
+  date.setDate(date.getDate() + 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Check if a session crosses midnight and split it if needed
+ * @param {Object} session - Session object with date, start_time, end_time, type
+ * @returns {Array} - Array of one or two session objects
+ */
+function splitMidnightSession(session) {
+  const startParts = session.start_time.split(':').map(Number);
+  const endParts = session.end_time.split(':').map(Number);
+
+  const startSeconds = startParts[0] * 3600 + startParts[1] * 60 + (startParts[2] || 0);
+  const endSeconds = endParts[0] * 3600 + endParts[1] * 60 + (endParts[2] || 0);
+
+  // Check if end time is before start time (midnight crossover)
+  if (endSeconds < startSeconds) {
+    // Split into two sessions
+    const session1 = {
+      id: uuidv4(),
+      date: session.date,
+      start_time: session.start_time,
+      end_time: '23:59:59',
+      duration_hours: calculateDuration(session.start_time, '23:59:59'),
+      type: session.type || 'work'
+    };
+
+    const session2 = {
+      id: uuidv4(),
+      date: getNextDay(session.date),
+      start_time: '00:00:00',
+      end_time: session.end_time,
+      duration_hours: calculateDuration('00:00:00', session.end_time),
+      type: session.type || 'work'
+    };
+
+    return [session1, session2];
+  }
+
+  // No split needed - return single session with generated ID
+  return [{
+    id: uuidv4(),
+    date: session.date,
+    start_time: session.start_time,
+    end_time: session.end_time,
+    duration_hours: calculateDuration(session.start_time, session.end_time),
+    type: session.type || 'work'
+  }];
 }
 
 /**
@@ -173,16 +229,20 @@ async function writeSessions(sessions) {
 export async function appendSession(session) {
   const sessions = await readSessions();
 
-  const newSession = {
-    id: uuidv4(),
-    date: session.date,
-    start_time: session.start_time,
-    end_time: session.end_time,
-    duration_hours: calculateDuration(session.start_time, session.end_time),
-    type: session.type || 'work' // Default to "work" if not specified
-  };
+  // Check if session crosses midnight and split if needed
+  const newSessions = splitMidnightSession(session);
 
-  sessions.push(newSession);
+  // Add all sessions (will be 1 or 2)
+  sessions.push(...newSessions);
+
+  // Sort by date and time
+  sessions.sort((a, b) => {
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    return a.start_time.localeCompare(b.start_time);
+  });
+
   await writeSessions(sessions);
 }
 
@@ -200,19 +260,28 @@ export async function updateSession(id, changes) {
     throw new Error(`Session with id ${id} not found`);
   }
 
-  // Update the session
-  sessions[index] = {
+  // Get the updated session data
+  const updatedSession = {
     ...sessions[index],
     ...changes
   };
 
-  // Recalculate duration if start or end time changed
-  if (changes.start_time || changes.end_time) {
-    sessions[index].duration_hours = calculateDuration(
-      sessions[index].start_time,
-      sessions[index].end_time
-    );
-  }
+  // Remove the old session
+  sessions.splice(index, 1);
+
+  // Check if updated session crosses midnight and split if needed
+  const newSessions = splitMidnightSession(updatedSession);
+
+  // Add new session(s)
+  sessions.push(...newSessions);
+
+  // Sort by date and time
+  sessions.sort((a, b) => {
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    return a.start_time.localeCompare(b.start_time);
+  });
 
   await writeSessions(sessions);
 }
