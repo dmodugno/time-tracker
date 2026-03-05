@@ -1,6 +1,7 @@
 import { useTimer } from '../hooks/useTimer';
 import { useSessions } from '../contexts/SessionsContext';
 import { formatTime12Hour } from '../utils/timeFormat';
+import { formatHoursMinutes } from '../utils/flexBalance';
 
 export function TimerTab() {
   const { isRunning, elapsedFormatted, start, stop } = useTimer();
@@ -25,7 +26,7 @@ export function TimerTab() {
   };
 
   // Calculate today's total hours
-  const todayTotal = todaySessions.reduce((sum, s) => sum + s.duration_hours, 0).toFixed(2);
+  const todayTotal = todaySessions.reduce((sum, s) => sum + s.duration_hours, 0);
 
   return (
     <div className="space-y-8">
@@ -81,7 +82,7 @@ export function TimerTab() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800">Today's Sessions</h3>
             <span className="text-sm font-medium text-gray-600">
-              Total: {todayTotal} hours
+              Total: {formatHoursMinutes(todayTotal)}
             </span>
           </div>
 
@@ -100,7 +101,7 @@ export function TimerTab() {
                     <td className="px-4 py-3 text-sm text-gray-900">{formatTime12Hour(session.start_time)}</td>
                     <td className="px-4 py-3 text-sm text-gray-900">{formatTime12Hour(session.end_time)}</td>
                     <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      {session.duration_hours.toFixed(2)}
+                      {formatHoursMinutes(session.duration_hours)}
                     </td>
                   </tr>
                 ))}

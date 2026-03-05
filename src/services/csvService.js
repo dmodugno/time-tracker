@@ -129,7 +129,12 @@ function calculateDuration(startTime, endTime) {
   const endS = endParts[2] || 0; // Default to 0 if no seconds
 
   const startSeconds = startH * 3600 + startM * 60 + startS;
-  const endSeconds = endH * 3600 + endM * 60 + endS;
+  let endSeconds = endH * 3600 + endM * 60 + endS;
+
+  // Handle midnight crossover: if end time is before start time, add 24 hours
+  if (endSeconds < startSeconds) {
+    endSeconds += 86400; // 24 hours in seconds
+  }
 
   const durationSeconds = endSeconds - startSeconds;
   return Math.round((durationSeconds / 3600) * 100) / 100; // Round to 2 decimal places

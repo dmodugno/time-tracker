@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSessions } from '../contexts/SessionsContext';
 import { formatTime12Hour } from '../utils/timeFormat';
+import { formatHoursMinutes } from '../utils/flexBalance';
 import { DayOffForm } from './DayOffForm';
 
 export function SessionsTab() {
@@ -88,11 +89,8 @@ export function SessionsTab() {
   };
 
   const saveEdit = async (id) => {
-    // Validate end time is after start time
-    if (editForm.end_time <= editForm.start_time) {
-      alert('End time must be after start time');
-      return;
-    }
+    // No validation needed - midnight crossover is now supported
+    // Duration calculation will handle end time before start time
 
     try {
       await updateSession(id, editForm);
@@ -118,11 +116,8 @@ export function SessionsTab() {
   const handleAddSession = async (e) => {
     e.preventDefault();
 
-    // Validate end time is after start time
-    if (addForm.end_time <= addForm.start_time) {
-      alert('End time must be after start time');
-      return;
-    }
+    // No validation needed - midnight crossover is now supported
+    // Duration calculation will handle end time before start time
 
     try {
       await addSession(addForm);
@@ -431,7 +426,7 @@ export function SessionsTab() {
                           {formatTime12Hour(session.end_time)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {session.duration_hours.toFixed(2)}
+                          {formatHoursMinutes(session.duration_hours)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                           <button
