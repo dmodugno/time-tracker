@@ -93,10 +93,33 @@ export function ReportsTab() {
 
     const weeks = getISOWeeksForMonth(year, month);
 
+    // Find earliest session date to avoid penalizing pre-tracking days
+    let earliestSessionDate = null;
+    if (sessions.length > 0) {
+      earliestSessionDate = sessions.reduce((earliest, session) => {
+        return session.date < earliest ? session.date : earliest;
+      }, sessions[0].date);
+    }
+
     return {
       monthName: targetMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
       weeks: weeks.map(week => {
-        const weekStats = calculatePeriodBalance(sessions, week.startDate, week.endDate, dailyTarget);
+        // Adjust week start date to not go before earliest session
+        let adjustedStartDate = week.startDate;
+        if (earliestSessionDate && week.startDate < earliestSessionDate) {
+          adjustedStartDate = earliestSessionDate;
+        }
+
+        // If the adjusted start date is after the week end, skip this week
+        if (adjustedStartDate > week.endDate) {
+          return {
+            ...week,
+            totalHours: 0,
+            balance: 0
+          };
+        }
+
+        const weekStats = calculatePeriodBalance(sessions, adjustedStartDate, week.endDate, dailyTarget);
         return {
           ...week,
           ...weekStats
