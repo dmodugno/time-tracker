@@ -101,6 +101,13 @@ export function ReportsTab() {
       }, sessions[0].date);
     }
 
+    // Get current date cutoff (today or yesterday based on end of work day)
+    const today = getLocalDateString(now);
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
+    const currentDateCutoff = isAfterWorkDay ? today : yesterdayStr;
+
     return {
       monthName: targetMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
       weeks: weeks.map(week => {
@@ -110,8 +117,14 @@ export function ReportsTab() {
           adjustedStartDate = earliestSessionDate;
         }
 
-        // If the adjusted start date is after the week end, skip this week
-        if (adjustedStartDate > week.endDate) {
+        // Adjust week end date to not go beyond current date
+        let adjustedEndDate = week.endDate;
+        if (week.endDate > currentDateCutoff) {
+          adjustedEndDate = currentDateCutoff;
+        }
+
+        // If the adjusted start date is after the adjusted end date, skip this week
+        if (adjustedStartDate > adjustedEndDate) {
           return {
             ...week,
             totalHours: 0,
@@ -119,14 +132,14 @@ export function ReportsTab() {
           };
         }
 
-        const weekStats = calculatePeriodBalance(sessions, adjustedStartDate, week.endDate, dailyTarget);
+        const weekStats = calculatePeriodBalance(sessions, adjustedStartDate, adjustedEndDate, dailyTarget);
         return {
           ...week,
           ...weekStats
         };
       })
     };
-  }, [sessions, currentMonthOffset, dailyTarget]);
+  }, [sessions, currentMonthOffset, dailyTarget, isAfterWorkDay]);
 
   const StatCard = ({ title, totalHours, balance, period, color, showInProgress }) => (
     <div className={`bg-white rounded-lg shadow-lg p-6 border-t-4 ${color}`}>
