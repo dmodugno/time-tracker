@@ -70,8 +70,12 @@ export function useTimer() {
       return `${hours}:${minutes}`; // Returns HH:MM
     };
 
+    // Format date using local timezone (no UTC conversion)
     const formatDate = (date) => {
-      return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`; // Returns YYYY-MM-DD
     };
 
     const session = {
