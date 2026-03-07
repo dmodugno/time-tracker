@@ -108,8 +108,30 @@ export function ReportsTab() {
     const yesterdayStr = getLocalDateString(yesterday);
     const currentDateCutoff = isAfterWorkDay ? today : yesterdayStr;
 
+    // Calculate actual calendar month range (first to last day of the month)
+    const monthFirstDay = getLocalDateString(new Date(year, month, 1));
+    const monthLastDay = getLocalDateString(new Date(year, month + 1, 0)); // Day 0 = last day of previous month
+
+    // Adjust month range based on earliest session and current date
+    let adjustedMonthStart = monthFirstDay;
+    if (earliestSessionDate && monthFirstDay < earliestSessionDate) {
+      adjustedMonthStart = earliestSessionDate;
+    }
+
+    let adjustedMonthEnd = monthLastDay;
+    if (monthLastDay > currentDateCutoff) {
+      adjustedMonthEnd = currentDateCutoff;
+    }
+
+    // Calculate monthly total (only if valid range)
+    let monthTotal = { totalHours: 0, balance: 0 };
+    if (adjustedMonthStart <= adjustedMonthEnd) {
+      monthTotal = calculatePeriodBalance(sessions, adjustedMonthStart, adjustedMonthEnd, dailyTarget);
+    }
+
     return {
       monthName: targetMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
+      monthTotal,
       weeks: weeks.map(week => {
         // Adjust week start date to not go before earliest session
         let adjustedStartDate = week.startDate;
@@ -300,6 +322,19 @@ export function ReportsTab() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                    <tr>
+                      <td colSpan="2" className="px-6 py-4 text-sm font-bold text-gray-900 uppercase">
+                        {monthlySummary.monthName} Total
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
+                        {formatHoursMinutes(monthlySummary.monthTotal.totalHours)}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${getFlexBalanceColor(monthlySummary.monthTotal.balance)}`}>
+                        {formatFlexBalance(monthlySummary.monthTotal.balance)}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
