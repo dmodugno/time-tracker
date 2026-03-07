@@ -5,6 +5,8 @@ import {
   calculatePeriodBalance,
   formatFlexBalance,
   formatHoursMinutes,
+  formatDaysHoursMinutes,
+  formatFlexBalanceDays,
   getFlexBalanceColor,
   getISOWeeksForMonth,
   formatDateRange
@@ -163,12 +165,14 @@ export function ReportsTab() {
     };
   }, [sessions, currentMonthOffset, dailyTarget, isAfterWorkDay]);
 
-  const StatCard = ({ title, totalHours, balance, period, color, showInProgress }) => (
+  const StatCard = ({ title, totalHours, balance, period, color, showInProgress, useDaysFormat = false }) => (
     <div className={`bg-white rounded-lg shadow-lg p-6 border-t-4 ${color}`}>
       <h3 className="text-lg font-semibold text-gray-700 mb-4">{title}</h3>
       <div className="space-y-3">
         <div>
-          <p className="text-4xl font-bold text-gray-900">{formatHoursMinutes(totalHours)}</p>
+          <p className="text-4xl font-bold text-gray-900">
+            {useDaysFormat ? formatDaysHoursMinutes(totalHours, dailyTarget) : formatHoursMinutes(totalHours)}
+          </p>
           <p className="text-sm text-gray-500">hours worked</p>
         </div>
         <div className="pt-3 border-t border-gray-200">
@@ -182,7 +186,7 @@ export function ReportsTab() {
           ) : (
             <>
               <p className={`text-2xl font-semibold ${getFlexBalanceColor(balance)}`}>
-                {formatFlexBalance(balance)}
+                {useDaysFormat ? formatFlexBalanceDays(balance, dailyTarget) : formatFlexBalance(balance)}
               </p>
               <p className="text-sm text-gray-500">flex balance</p>
             </>
@@ -223,6 +227,7 @@ export function ReportsTab() {
               period={ranges.today.start}
               color="border-blue-500"
               showInProgress={!isAfterWorkDay}
+              useDaysFormat={false}
             />
             <StatCard
               title="This Week"
@@ -230,6 +235,7 @@ export function ReportsTab() {
               balance={periodStats.week.balance}
               period={`${ranges.week.start} to ${ranges.week.end}`}
               color="border-green-500"
+              useDaysFormat={true}
             />
             <StatCard
               title="This Month"
@@ -237,6 +243,7 @@ export function ReportsTab() {
               balance={periodStats.month.balance}
               period={`${ranges.month.start} to ${ranges.month.end}`}
               color="border-purple-500"
+              useDaysFormat={true}
             />
             <StatCard
               title="This Year"
@@ -244,6 +251,7 @@ export function ReportsTab() {
               balance={periodStats.year.balance}
               period={`${ranges.year.start} to ${ranges.year.end}`}
               color="border-orange-500"
+              useDaysFormat={true}
             />
           </div>
 
@@ -314,10 +322,10 @@ export function ReportsTab() {
                           {formatDateRange(week.startDate, week.endDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {formatHoursMinutes(week.totalHours)}
+                          {formatDaysHoursMinutes(week.totalHours, dailyTarget)}
                         </td>
                         <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${getFlexBalanceColor(week.balance)}`}>
-                          {formatFlexBalance(week.balance)}
+                          {formatFlexBalanceDays(week.balance, dailyTarget)}
                         </td>
                       </tr>
                     ))}
@@ -328,10 +336,10 @@ export function ReportsTab() {
                         {monthlySummary.monthName} Total
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                        {formatHoursMinutes(monthlySummary.monthTotal.totalHours)}
+                        {formatDaysHoursMinutes(monthlySummary.monthTotal.totalHours, dailyTarget)}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${getFlexBalanceColor(monthlySummary.monthTotal.balance)}`}>
-                        {formatFlexBalance(monthlySummary.monthTotal.balance)}
+                        {formatFlexBalanceDays(monthlySummary.monthTotal.balance, dailyTarget)}
                       </td>
                     </tr>
                   </tfoot>

@@ -265,3 +265,37 @@ export function formatDateRange(startDate, endDate) {
     return `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
   }
 }
+
+/**
+ * Format hours as days, hours, and minutes (no sign)
+ * @param {number} decimalHours - Hours in decimal format
+ * @param {number} dailyTarget - Hours per day for conversion
+ * @returns {string} - Formatted string like "5d 6h 25m"
+ */
+export function formatDaysHoursMinutes(decimalHours, dailyTarget) {
+  const days = Math.floor(decimalHours / dailyTarget);
+  const remainingHours = decimalHours - (days * dailyTarget);
+  const hours = Math.floor(remainingHours);
+  const minutes = Math.round((remainingHours - hours) * 60);
+
+  return `${days}d ${hours}h ${minutes}m`;
+}
+
+/**
+ * Format balance as days, hours, and minutes with sign
+ * @param {number} balanceHours - Balance in decimal hours
+ * @param {number} dailyTarget - Hours per day for conversion
+ * @returns {string} - Formatted string like "+2d 4h 25m" or "−0d 6h 15m"
+ */
+export function formatFlexBalanceDays(balanceHours, dailyTarget) {
+  const isNegative = balanceHours < 0;
+  const absHours = Math.abs(balanceHours);
+
+  const days = Math.floor(absHours / dailyTarget);
+  const remainingHours = absHours - (days * dailyTarget);
+  const hours = Math.floor(remainingHours);
+  const minutes = Math.round((remainingHours - hours) * 60);
+
+  const sign = isNegative ? '−' : '+';
+  return `${sign}${days}d ${hours}h ${minutes}m`;
+}
