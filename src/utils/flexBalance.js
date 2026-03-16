@@ -299,3 +299,61 @@ export function formatFlexBalanceDays(balanceHours, dailyTarget) {
   const sign = isNegative ? '−' : '+';
   return `${sign}${days}d ${hours}h ${minutes}m`;
 }
+
+/**
+ * Get daily breakdown for a week
+ * @param {Array} sessions - All sessions
+ * @param {string} startDate - Week start date (YYYY-MM-DD)
+ * @param {string} endDate - Week end date (YYYY-MM-DD)
+ * @param {number} dailyTarget - Daily target hours
+ * @returns {Array} - Array of daily stats with { date, dayName, totalHours, target, balance, hasDayOff, isWeekend }
+ */
+export function getWeeklyDailyBreakdown(sessions, startDate, endDate, dailyTarget) {
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const periodSessions = sessions.filter(s => s.date >= startDate && s.date <= endDate);
+  const grouped = groupSessionsByDate(periodSessions);
+
+  const dailyStats = [];
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = getLocalDateString(d);
+    const dayName = dayNames[d.getDay()];
+    const isWeekdayDate = isWeekday(dateStr);
+    const isWeekendDate = !isWeekdayDate;
+    const daysSessions = grouped[dateStr] || [];
+
+    const hasDayOff = daysSessions.some(s => s.type === 'day_off');
+    const totalHours = daysSessions
+      .filter(s => s.type === 'work')
+      .reduce((sum, s) => sum + s.duration_hours, 0);
+
+    let target = 0;
+    let balance = 0;
+
+    if (hasDayOff) {
+      target = 0;
+      balance = 0;
+    } else if (isWeekdayDate) {
+      target = dailyTarget;
+      balance = totalHours - dailyTarget;
+    } else {
+      // Weekend
+      target = 0;
+      balance = totalHours;
+    }
+
+    dailyStats.push({
+      date: dateStr,
+      dayName,
+      totalHours,
+      target,
+      balance,
+      hasDayOff,
+      isWeekend: isWeekendDate
+    });
+  }
+
+  return dailyStats;
+}

@@ -9,7 +9,8 @@ import {
   formatFlexBalanceDays,
   getFlexBalanceColor,
   getISOWeeksForMonth,
-  formatDateRange
+  formatDateRange,
+  getWeeklyDailyBreakdown
 } from '../utils/flexBalance';
 
 // Helper to get local date in YYYY-MM-DD format (no timezone conversion)
@@ -24,6 +25,7 @@ export function ReportsTab() {
   const { sessions, hasFile } = useSessions();
   const { dailyTarget, endOfWorkDay } = useSettings();
   const [currentMonthOffset, setCurrentMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
+  const [selectedWeek, setSelectedWeek] = useState(null); // For weekly detail modal
 
   // Check if current time is after end of work day
   const isAfterWorkDay = useMemo(() => {
@@ -314,7 +316,11 @@ export function ReportsTab() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {monthlySummary.weeks.map((week, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setSelectedWeek(week)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           Week {week.weekNumber}
                         </td>
@@ -347,6 +353,115 @@ export function ReportsTab() {
               </div>
             )}
           </div>
+
+          {/* Weekly Detail Modal */}
+          {selectedWeek && (
+            <div
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)' }}
+            >
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Modal Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Week {selectedWeek.weekNumber} Details
+                  </h3>
+                  <button
+                    onClick={() => setSelectedWeek(null)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="px-6 py-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    {formatDateRange(selectedWeek.startDate, selectedWeek.endDate)}
+                  </p>
+
+                  {/* Daily Breakdown Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Day
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Worked
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Target
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Balance
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {getWeeklyDailyBreakdown(sessions, selectedWeek.startDate, selectedWeek.endDate, dailyTarget).map((day) => (
+                          <tr key={day.date} className={day.isWeekend ? 'bg-gray-50' : ''}>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="font-medium text-gray-900">{day.dayName}</div>
+                              <div className="text-xs text-gray-500">{formatDateRange(day.date, day.date)}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                              {day.hasDayOff ? (
+                                <span className="text-gray-500 italic">Day off</span>
+                              ) : (
+                                formatHoursMinutes(day.totalHours)
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                              {day.hasDayOff ? (
+                                '—'
+                              ) : day.isWeekend ? (
+                                <span className="text-gray-400">Weekend</span>
+                              ) : (
+                                formatHoursMinutes(day.target)
+                              )}
+                            </td>
+                            <td className={`px-4 py-3 text-sm font-medium text-right ${getFlexBalanceColor(day.balance)}`}>
+                              {formatFlexBalance(day.balance)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                        <tr>
+                          <td className="px-4 py-3 text-sm font-bold text-gray-900 uppercase">
+                            Week Total
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
+                            {formatHoursMinutes(selectedWeek.totalHours)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                            —
+                          </td>
+                          <td className={`px-4 py-3 text-sm font-bold text-right ${getFlexBalanceColor(selectedWeek.balance)}`}>
+                            {formatFlexBalance(selectedWeek.balance)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setSelectedWeek(null)}
+                    className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
