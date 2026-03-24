@@ -424,8 +424,8 @@ export function ReportsTab() {
                                 formatHoursMinutes(day.target)
                               )}
                             </td>
-                            <td className={`px-4 py-3 text-sm font-medium text-right ${getFlexBalanceColor(day.balance)}`}>
-                              {formatFlexBalance(day.balance)}
+                            <td className={`px-4 py-3 text-sm font-medium text-right ${day.isFuture ? 'text-gray-400' : getFlexBalanceColor(day.balance)}`}>
+                              {day.isFuture ? '—' : formatFlexBalance(day.balance)}
                             </td>
                           </tr>
                         ))}
@@ -436,13 +436,13 @@ export function ReportsTab() {
                             Week Total
                           </td>
                           <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-                            {formatHoursMinutes(selectedWeek.totalHours)}
+                            {formatDaysHoursMinutes(selectedWeek.totalHours, dailyTarget)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 text-right">
                             —
                           </td>
                           <td className={`px-4 py-3 text-sm font-bold text-right ${getFlexBalanceColor(selectedWeek.balance)}`}>
-                            {formatFlexBalance(selectedWeek.balance)}
+                            {formatFlexBalanceDays(selectedWeek.balance, dailyTarget)}
                           </td>
                         </tr>
                       </tfoot>

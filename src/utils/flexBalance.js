@@ -306,12 +306,22 @@ export function formatFlexBalanceDays(balanceHours, dailyTarget) {
  * @param {string} startDate - Week start date (YYYY-MM-DD)
  * @param {string} endDate - Week end date (YYYY-MM-DD)
  * @param {number} dailyTarget - Daily target hours
- * @returns {Array} - Array of daily stats with { date, dayName, totalHours, target, balance, hasDayOff, isWeekend }
+ * @returns {Array} - Array of daily stats with { date, dayName, totalHours, target, balance, hasDayOff, isWeekend, isFuture }
  */
 export function getWeeklyDailyBreakdown(sessions, startDate, endDate, dailyTarget) {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const periodSessions = sessions.filter(s => s.date >= startDate && s.date <= endDate);
   const grouped = groupSessionsByDate(periodSessions);
+
+  // Get current date cutoff (today or yesterday based on 6pm end of work day)
+  const now = new Date();
+  const currentHour = now.getHours();
+  const isAfterWorkDay = currentHour >= 18;
+  const today = getLocalDateString(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDateString(yesterday);
+  const currentDateCutoff = isAfterWorkDay ? today : yesterdayStr;
 
   const dailyStats = [];
   const start = new Date(startDate + 'T00:00:00');
@@ -323,6 +333,7 @@ export function getWeeklyDailyBreakdown(sessions, startDate, endDate, dailyTarge
     const isWeekdayDate = isWeekday(dateStr);
     const isWeekendDate = !isWeekdayDate;
     const daysSessions = grouped[dateStr] || [];
+    const isFutureDate = dateStr > currentDateCutoff;
 
     const hasDayOff = daysSessions.some(s => s.type === 'day_off');
     const totalHours = daysSessions
@@ -351,7 +362,8 @@ export function getWeeklyDailyBreakdown(sessions, startDate, endDate, dailyTarge
       target,
       balance,
       hasDayOff,
-      isWeekend: isWeekendDate
+      isWeekend: isWeekendDate,
+      isFuture: isFutureDate
     });
   }
 
