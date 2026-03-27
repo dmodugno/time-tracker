@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 
 const DAILY_TARGET_KEY = 'daily_target_hours';
 const END_OF_WORKDAY_KEY = 'end_of_workday';
-const DEFAULT_TARGET = 9;
-const DEFAULT_END_OF_WORKDAY = '18:00';
+const DEFAULT_TARGET = 8;
+const DEFAULT_END_OF_WORKDAY = '17:00';
 
 /**
  * Custom hook for managing app settings with localStorage persistence
