@@ -1,38 +1,75 @@
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+
+const MAX_RANGE_DAYS = 90;
+
+function getDateRange(start, end) {
+  const dates = [];
+  const current = new Date(start + 'T00:00:00');
+  const last = new Date(end + 'T00:00:00');
+  while (current <= last) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
 
 export function DayOffForm({ sessions, onAddDayOff, onCancel }) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState('');
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    // Check for duplicate day off on this date
-    const existingDayOff = sessions.find(
-      s => s.date === selectedDate && s.type === 'day_off'
-    );
+    const rangeEnd = endDate || selectedDate;
 
-    if (existingDayOff) {
-      setError('A day off entry already exists for this date.');
+    if (rangeEnd < selectedDate) {
+      setError('End date must be on or after the start date.');
       return;
     }
 
-    // Create day off entry
-    const dayOffEntry = {
-      date: selectedDate,
-      start_time: '',
-      end_time: '',
-      duration_hours: 0,
-      type: 'day_off'
-    };
+    const dates = getDateRange(selectedDate, rangeEnd);
 
+    if (dates.length > MAX_RANGE_DAYS) {
+      setError(`That range is ${dates.length} days - please keep it under ${MAX_RANGE_DAYS} days.`);
+      return;
+    }
+
+    // Check for duplicate day off entries across the whole range
+    const conflicts = dates.filter(
+      date => sessions.some(s => s.date === date && s.type === 'day_off')
+    );
+
+    if (conflicts.length > 0) {
+      setError(
+        conflicts.length === 1
+          ? `A day off entry already exists for ${conflicts[0]}.`
+          : `Day off entries already exist for: ${conflicts.join(', ')}.`
+      );
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await onAddDayOff(dayOffEntry);
+      for (const date of dates) {
+        await onAddDayOff({
+          date,
+          start_time: '',
+          end_time: '',
+          duration_hours: 0,
+          type: 'day_off'
+        });
+      }
       onCancel(); // Close form on success
     } catch (err) {
       setError(err.message || 'Failed to add day off');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -46,29 +83,48 @@ export function DayOffForm({ sessions, onAddDayOff, onCancel }) {
         </div>
       )}
 
-      <div className="mb-4">
-        <label htmlFor="day-off-date" className="block text-sm font-medium text-gray-700 mb-1">
-          Date
-        </label>
-        <input
-          id="day-off-date"
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          This date will be marked as a day off (no deficit in flex balance)
-        </p>
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div className="flex-1 min-w-[160px]">
+          <label htmlFor="day-off-date" className="block text-sm font-medium text-gray-700 mb-1">
+            Date
+          </label>
+          <input
+            id="day-off-date"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            required
+          />
+        </div>
+
+        <div className="flex-1 min-w-[160px]">
+          <label htmlFor="day-off-end-date" className="block text-sm font-medium text-gray-700 mb-1">
+            End date (optional)
+          </label>
+          <input
+            id="day-off-end-date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={selectedDate}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
       </div>
+
+      <p className="-mt-2 mb-4 text-xs text-gray-500">
+        Leave end date blank to log a single day. Set it to log every day from the date above
+        through this one (no deficit in flex balance).
+      </p>
 
       <div className="flex gap-3">
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
+          disabled={submitting}
+          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          Log Day Off
+          {submitting ? 'Logging...' : 'Log Day Off'}
         </button>
         <button
           type="button"

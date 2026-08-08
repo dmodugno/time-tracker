@@ -155,6 +155,18 @@ function getNextDay(dateString) {
  * @returns {Array} - Array of one or two session objects
  */
 function splitMidnightSession(session) {
+  // Day off entries have no start/end time - skip duration calculation entirely
+  if (session.type === 'day_off') {
+    return [{
+      id: uuidv4(),
+      date: session.date,
+      start_time: '',
+      end_time: '',
+      duration_hours: 0,
+      type: 'day_off'
+    }];
+  }
+
   const startParts = session.start_time.split(':').map(Number);
   const endParts = session.end_time.split(':').map(Number);
 
